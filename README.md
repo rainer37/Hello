@@ -1,6 +1,12 @@
 # Hello
 Practice for fun....
 
-# File Downloader
+## Simple File Downloader
+```
 Usages: Hello [url]
-A directory named download will be created on your $GOPATH to store the downloaded files.
+```
+
+### Notes
+- Hello directory should go into your src dir in your preferred working directory, or compiled directly.<br />
+Ex: ```$GOPATH/src/github.com/your_name/Hello.```
+- A directory named download will be created on your $GOPATH to store the downloaded files.
