@@ -7,9 +7,10 @@ import (
 	"golang.org/x/net/html"
 	"os"
 	"strings"
+	"github.com/rainer37/util"
 	)
 
-const DOWNLOADDIR string = "/download/"
+const DOWNLOAD_DIR string = "/download/"
 const PDF_SUFFIX string =".pdf"
 const JPG_SUFFIX string =".jpg"
 
@@ -26,7 +27,7 @@ func link_filter(url string) int {
 }
 
 // download a single file from url
-func download_a_file(url string) {
+func download_a_file(url string, download_dir string) {
 
 	// request for the file content.
 	rep, err := http.Get(url)
@@ -37,14 +38,6 @@ func download_a_file(url string) {
 	}
 
 	defer rep.Body.Close()
-
-	// path of download directory
-	download_dir := os.Getenv("GOPATH")+DOWNLOADDIR
-
-	if _, err = os.Stat(download_dir); os.IsNotExist(err) {
-		fmt.Println("creating download dir")
-		os.Mkdir(download_dir, 0700)
-	}
 
 	// file_name := $GOPATH/desktop/download/***.pdf
 	file_name := download_dir+url[strings.LastIndex(url,"/")+1:]
@@ -121,7 +114,7 @@ func get_all_links(body io.Reader) []string {
 
 // starting from a single url and get all possible files and recurse.
 // depth as the number of levels to go down.
-func get_and_download_all(target_url string, depth int) {
+func get_and_download_all(target_url string, download_dir string, depth int) {
 
 	if depth == 0 {
 		return
@@ -149,12 +142,12 @@ func get_and_download_all(target_url string, depth int) {
 	for _, link := range(links) {
 	 	//fmt.Println(link)
 
-	 	prefix := string(target_url[0:strings.LastIndex(target_url,"/")+1])
+	 	prefix,_ := util.Get_PreSlash(target_url)
 
 	 	// download the pdf files
 	 	if strings.Index(link, PDF_SUFFIX) != -1 || strings.Index(link, JPG_SUFFIX) != -1{
 
-	 		download_a_file(prefix+link) // download the single file
+	 		download_a_file(prefix+link, download_dir) // download the single file
 	 	
 	 	} else {
 
@@ -165,10 +158,18 @@ func get_and_download_all(target_url string, depth int) {
 
 		 		// if the link found is a internal link, then add prefix to it.
 		 		if strings.Index(link, "http") == -1 {
-		 			get_and_download_all(prefix+link, depth-1);
+
+					sub_dir := download_dir+link+"/"
+					if _, err = os.Stat(sub_dir); os.IsNotExist(err) {
+						fmt.Println("creating sub dir", link)
+						os.Mkdir(sub_dir, 0700)
+					}
+
+		 			get_and_download_all(prefix+link, sub_dir, depth-1);
 		 		} else {
-		 			get_and_download_all(link, depth-1);
+		 			get_and_download_all(link, download_dir ,depth-1);
 		 		}
+		 	
 		 	}
 
 	 	}
@@ -195,6 +196,14 @@ func main(){
 
     visited_urls = make(map[string]string);
 
-	get_and_download_all(target_url, 2);
+    // create download dir
+	download_dir := os.Getenv("GOPATH")+DOWNLOAD_DIR
+
+	if _, err := os.Stat(download_dir); os.IsNotExist(err) {
+		fmt.Println("creating download dir")
+		os.Mkdir(download_dir, 0700)
+	}
+
+	get_and_download_all(target_url, download_dir, 2);
 	// inital http request.
 }
